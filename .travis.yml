@@ -1,0 +1,13 @@
+dist: xenial
+language: python
+python:
+  - "3.9"
+install:
+  - pip install poetry
+  - travis_retry poetry install
+script:
+   - make lint
+   - make test
+branches:
+  only:
+  - main
