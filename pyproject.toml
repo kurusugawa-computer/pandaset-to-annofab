@@ -10,6 +10,8 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.9"
 
+y-package = { path = "vendor/", develop = false }
+
 requests = "*"
 
 [tool.poetry.dev-dependencies]
