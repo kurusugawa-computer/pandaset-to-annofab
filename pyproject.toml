@@ -10,7 +10,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.9"
 
-y-package = { path = "vendor/", develop = false }
+pandaset = { path = "pandaset-devkit/python", develop = false }
 
 requests = "*"
 
