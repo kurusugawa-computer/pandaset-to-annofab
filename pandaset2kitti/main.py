@@ -9,18 +9,35 @@ import numpy
 from PIL import Image
 from pyquaternion import Quaternion
 
-from dgp.proto.geometry_pb2 import CameraIntrinsics, Pose
-from dgp.proto.point_cloud_pb2 import PointCloud
-from dgp.proto.sample_pb2 import Datum, Sample
-from dgp.proto.scene_pb2 import Scene
-from dgp.utils.camera import camera_matrix_from_pbobject
-from dgp.utils.geometry import Pose as geoPose
-from dgputils.common.dataset_accessor import DatasetAccessor
-from dgputils.common.utils import set_default_logger
-from dgputils.kitti.scene import XYZ, CameraViewSettings, KittiImageSeries, KittiVelodyneSeries
-from dgputils.kitti.scene import Scene as KittiScene
 
+from pandaset.sequence import Lidar
 logger = logging.getLogger(__name__)
+
+class Pandaset2Kitti:
+    def __init__(self, dataset_accessor: DatasetAccessor):
+        self.dataset_accessor = dataset_accessor
+
+
+    def write_velodyne_bin_file(self, lidar: Lidar, output_file: Path) -> None:
+        """
+        LiDARの点群データを、KITTIのvelodyne bin fileに出力する。
+
+        KIITIのvelodyneファイルのフォーマット
+        https://github.com/yanii/kitti-pcl/blob/3b4ebfd49912702781b7c5b1cf88a00a8974d944/KITTI_README.TXT#L51-L67
+        変換方法
+        (N,3) -> (N,4) -> (1,M)
+
+        Args:
+            point_cloud: Point Cloud情報
+            output_file: 出力ファイル（velodyneのbinファイル）
+        """
+
+        df = lidar.data[["x","y","z","i"]]
+        # 1次元の配列に変換する
+        flatten_data = df.values.flatten().astype(numpy.float32)
+        output_file.parent.mkdir(exist_ok=True, parents=True)
+        flatten_data.tofile(str(output_file))
+
 
 
 class ConvertDgp2Kitti:
