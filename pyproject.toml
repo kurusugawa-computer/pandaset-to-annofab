@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "PandaSetをKITTIに変換します。"
 authors = ["yuji38kwmt"]
 packages = [
-    { include = "panda2kitti" }
+    { include = "pandaset2kitti" }
 ]
 
 [tool.poetry.dependencies]

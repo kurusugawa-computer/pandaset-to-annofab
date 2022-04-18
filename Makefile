@@ -1,5 +1,5 @@
 ifndef TARGET
-	export TARGET:=panda2kitti
+	export TARGET:=pandaset2kitti
 endif
 
 .PHONY: init lint format test
