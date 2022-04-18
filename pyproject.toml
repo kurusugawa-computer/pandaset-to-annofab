@@ -10,7 +10,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.9"
 
-
+requests = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
@@ -30,7 +30,7 @@ ipython = "*"
 # type sutb
 types-requests = "*"
 types-PyYAML = "*"
-slack-sdk = "^3"
+
 
 [tool.black]
 line-length = 120
