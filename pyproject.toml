@@ -9,10 +9,11 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-
+numpy = "*"
 pandaset = { path = "pandaset-devkit/python", develop = false }
 
 requests = "*"
+pyquaternion = "^0.9.9"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"

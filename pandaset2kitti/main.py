@@ -8,10 +8,15 @@ from typing import ClassVar, List, Tuple
 import numpy
 from PIL import Image
 from pyquaternion import Quaternion
+from pandaset2kitti.common.camera import get_camera_matrix_from_intrinsics
 
+from pandaset.sequence import Lidar, Camera
+from pandaset.sensors import Intrinsics
+from pandaset2kitti.common.pose import Pose
 
-from pandaset.sequence import Lidar
 logger = logging.getLogger(__name__)
+
+Pose = dict[str, dict[str, float]]
 
 class Pandaset2Kitti:
     def __init__(self, dataset_accessor: DatasetAccessor):
@@ -38,6 +43,64 @@ class Pandaset2Kitti:
         output_file.parent.mkdir(exist_ok=True, parents=True)
         flatten_data.tofile(str(output_file))
 
+
+    @staticmethod
+    def write_calibration_file(
+        lidar_pose: Pose,
+        camera_pose: Pose,
+        camera_intrinsics: Intrinsics,
+        output_file: Path,
+    ) -> None:
+        """
+        KITTIのcalibration ファイルを生成する。
+
+        Args:
+            camera_intrinsics: カメラの内部パラメータ
+            camera_pose: World座標系に対するCameraのpose
+            point_cloud_pose: World座標系に対するLiDar Sensorのpose
+            output_file: 出力先
+
+        """
+        P2 = numpy.zeros((3, 4))
+        P2[:3, :3] = get_camera_matrix_from_intrinsics(camera_intrinsics)
+
+        R0_rect = numpy.eye(3)
+
+        # 3x4 matrix
+        Tr_velo_to_cam = (camera_pose.inverse() * lidar_pose).matrix[:3, :]
+
+        output_file.parent.mkdir(exist_ok=True, parents=True)
+        with output_file.open(mode="w") as f:
+            f.write(f"P2: {' '.join([str(elem) for elem in P2.flatten()])}\n")
+            f.write(f"R0_rect: {' '.join([str(elem) for elem in R0_rect.flatten()])}\n")
+            f.write(f"Tr_velo_to_cam: {' '.join([str(elem) for elem in Tr_velo_to_cam.flatten()])}\n")
+
+
+    def write_image_file(
+        self,
+        image_filename: str,
+        output_dir: Path,
+        frame_name: str,
+        convert_to_png: bool = False,
+    ) -> None:
+        """
+        画像ファイルを生成する。
+
+        Args:
+            image_filename:
+            output_dir:
+            convert_to_png: PNGに変換するかどうか。3dpc-editor-cliの都合でPNGに変換した方が都合がよい。
+
+        """
+        image_path = self.dataset_accessor.get_path(image_filename)
+        output_dir.mkdir(exist_ok=True, parents=True)
+        if convert_to_png:
+            im = Image.open(image_path)
+            output_file = output_dir / f"{frame_name}.png"
+            im.save(output_file)
+        else:
+            output_file = output_dir / f"{frame_name}{Path(image_filename).suffix}"
+            shutil.copyfile(image_path, output_file)
 
 
 class ConvertDgp2Kitti:
