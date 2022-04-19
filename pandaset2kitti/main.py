@@ -1,4 +1,5 @@
 import logging
+import math
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from pathlib import Path
 from typing import Optional
@@ -9,9 +10,9 @@ from pandaset import DataSet
 from pandaset.sensors import Intrinsics
 from pandaset.sequence import Sequence
 from pyquaternion import Quaternion
-import math
+
 from pandaset2kitti.common.camera import get_camera_matrix_from_intrinsics
-from pandaset2kitti.common.kitti import KittiImageSeries, KittiVelodyneSeries, CameraViewSettings, XYZ
+from pandaset2kitti.common.kitti import XYZ, CameraViewSettings, KittiImageSeries, KittiVelodyneSeries
 from pandaset2kitti.common.kitti import Scene as KittiScene
 from pandaset2kitti.common.pose import Pose
 from pandaset2kitti.common.utils import set_default_logger
@@ -94,7 +95,7 @@ class Pandaset2Kitti:
         scene = KittiScene(id_list=id_list, velodyne=velodyne, images=kitti_images, labels=[])
         scene.encode(str(output_file))
 
-    def get_camera_view_settings(
+    def get_camera_view_setting(
         self,
         camera_pose: Pose,
         camera_intrinsics: Intrinsics,
@@ -136,38 +137,68 @@ class Pandaset2Kitti:
             ),
         )
 
-    def write_kitti_scene(self, seq: Sequence, output_dir: Path):
-        seq.load_lidar()
+    def write_kitti_scene(
+        self,
+        sequence: Sequence,
+        output_dir: Path,
+        sampling_step: int = 1,
+        filename_prefix: str = "",
+        camera_name_list: Optional[list] = None,
+    ):
+        def get_filename_stem(index: int) -> str:
+            return f"{filename_prefix}{str(index)}"
+
+        sequence.load_lidar()
+
+        range_obj = range(0, len(sequence.lidar.data), sampling_step)
+
+        # 各ファイルの名前（拡張子を除く）に使うID
+        id_list = [str(e) for e in range_obj]
 
         # 点群データの出力
         velodyne_dir = output_dir / "velodyne"
         velodyne_dir.mkdir(exist_ok=True, parents=True)
-        slice_obj = slice(None,None,10)
 
-        range_obj = range(0, len(seq.lidar.data), 10)
         for index in range_obj:
-            filename = f"{str(index)}.bin"
-            lidar_data = seq.lidar.data[index]
-
-        for index, lidar_data in enumerate(seq.lidar.data):
-            filename = f"{str(index)}.bin"
+            filename = f"{get_filename_stem(index)}.bin"
+            lidar_data = sequence.lidar.data[index]
             self.write_velodyne_bin_file(lidar_data, output_file=velodyne_dir / filename)
 
         # カメラ画像とキャリブレーションファイルの出力
-        seq.load_camera()
+        sequence.load_camera()
         kitti_images = []
 
         FILE_EXTENSION = "jpg"
-        for camera_name, camera_obj in seq.camera.items():
+
+        # Annofabで表示する補助画像の順番が自然になるようにする
+        if camera_name_list is not None:
+            camera_name_list = [
+                "front_camera",
+                "front_left_camera",
+                "front_right_camera",
+                "left_camera",
+                "right_camera",
+                "back_camera",
+            ]
+
+        for camera_name in camera_name_list:
+            if camera_name not in sequence.camera:
+                logger.warning(f"{camera_name}の情報は存在しません。")
+                continue
+
+            camera_obj = sequence.camera[camera_name]
+
             calibration_dir = output_dir / f"calib-{camera_name}"
             calibration_dir.mkdir(exist_ok=True, parents=True)
             image_dir = output_dir / f"image-{camera_name}"
             image_dir.mkdir(exist_ok=True, parents=True)
 
-            for index, (pillow_image_obj, dict_lidar_pose, dict_camera_pose) in enumerate(
-                zip(camera_obj.data, seq.lidar.poses, camera_obj.poses)
-            ):
-                calibration_filename = f"{str(index)}.txt"
+            for index in range_obj:
+                pillow_image_obj = camera_obj.data[index]
+                dict_lidar_pose = sequence.lidar.poses[0]
+                dict_camera_pose = camera_obj.poses[0]
+
+                calibration_filename = f"{get_filename_stem(index)}.txt"
                 self.write_calibration_file(
                     lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose),
                     camera_pose=Pose.from_pandaset_pose(dict_camera_pose),
@@ -175,19 +206,23 @@ class Pandaset2Kitti:
                     output_file=calibration_dir / calibration_filename,
                 )
 
-                image_filename = f"{str(index)}.{FILE_EXTENSION}"
+                image_filename = f"{get_filename_stem(index)}.{FILE_EXTENSION}"
                 pillow_image_obj.save(str(image_dir / image_filename))
 
             # 先頭のカメラposeを取得する
-            camera_view_settings = self.get_camera_view_settings(camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]), camera_intrinsics=camera_obj.intrinsics)
+            camera_view_setting = self.get_camera_view_setting(
+                camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]), camera_intrinsics=camera_obj.intrinsics
+            )
             kitti_images.append(
                 KittiImageSeries(
-                    image_dir=image_dir.name, calib_dir=calibration_dir.name, file_extension=FILE_EXTENSION, camera_view_settings=camera_view_settings)
+                    image_dir=image_dir.name,
+                    calib_dir=calibration_dir.name,
+                    file_extension=FILE_EXTENSION,
+                    camera_view_setting=camera_view_setting,
                 )
             )
 
         # 拡張KITTI形式用のメタファイルを出力
-        id_list = [str(e) for e in range(len(seq.lidar.data))]
         self.write_scene_meta_file(
             id_list=id_list,
             velodyne_dirname=velodyne_dir.name,
@@ -211,7 +246,7 @@ def convert_pantadaset_to_kitti(pandaset_dir: Path, output_dir: Path, sequence_i
     for sequence_id in sequence_id_list:
         sequence = dataset[sequence_id]
         logger.info(f"{sequence_id=}をKITTIに変換します。")
-        main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id)
+        main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
 
 
 def parse_args():
@@ -222,6 +257,7 @@ def parse_args():
     parser.add_argument("-i", "--input_dir", type=Path, required=True, help="pandasetのディレクトリ")
     parser.add_argument("-o", "--output_dir", type=Path, required=True, help="出力先ディレクトリ")
 
+    parser.add_argument("--sequence_id", type=str, nargs="+", required=False, help="出力対象のsequence id")
     parser.add_argument("--sequence_id", type=str, nargs="+", required=False, help="出力対象のsequence id")
 
     return parser.parse_args()

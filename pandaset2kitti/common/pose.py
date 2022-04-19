@@ -29,7 +29,7 @@ class Pose:
         tvec_str = numpy.array2string(self.tvec, formatter=formatter)
         return "wxyz: {}, tvec: ({})".format(self.quat, tvec_str)
 
-    def __mul__(self, other):
+    def __mul__(self, other: "Pose") -> "Pose":
         """Left-multiply Pose with another Pose or 3D-Points.
 
         Parameters
@@ -45,18 +45,10 @@ class Pose:
         result: Pose or numpy.ndarray
             Transformed pose or point cloud
         """
-        if isinstance(other, Pose):
-            assert isinstance(other, self.__class__)
-            t = self.quat.rotate(other.tvec) + self.tvec
-            q = self.quat * other.quat
-            return self.__class__(q, t)
-        else:
-            assert other.shape[-1] == 3, "Point cloud is not 3-dimensional"
-            X = numpy.hstack([other, numpy.ones((len(other), 1))]).T
-            return (numpy.dot(self.matrix, X).T)[:, :3]
-
-    def __rmul__(self, other):
-        raise NotImplementedError("Right multiply not implemented yet!")
+        assert isinstance(other, self.__class__)
+        t = self.quat.rotate(other.tvec) + self.tvec
+        q = self.quat * other.quat
+        return self.__class__(q, t)
 
     def inverse(self):
         """Returns a new Pose that corresponds to the
