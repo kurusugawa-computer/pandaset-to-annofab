@@ -8,9 +8,10 @@ import pandas
 from pandaset import DataSet
 from pandaset.sensors import Intrinsics
 from pandaset.sequence import Sequence
-
+from pyquaternion import Quaternion
+import math
 from pandaset2kitti.common.camera import get_camera_matrix_from_intrinsics
-from pandaset2kitti.common.kitti import KittiImageSeries, KittiVelodyneSeries
+from pandaset2kitti.common.kitti import KittiImageSeries, KittiVelodyneSeries, CameraViewSettings, XYZ
 from pandaset2kitti.common.kitti import Scene as KittiScene
 from pandaset2kitti.common.pose import Pose
 from pandaset2kitti.common.utils import set_default_logger
@@ -62,7 +63,7 @@ class Pandaset2Kitti:
         R0_rect = numpy.eye(3)
 
         # 3x4 matrix
-        Tr_velo_to_cam = (camera_pose.inverse() * lidar_pose).matrix[:3, :]
+        Tr_velo_to_cam = (camera_pose.inverse()).matrix[:3, :]
 
         output_file.parent.mkdir(exist_ok=True, parents=True)
         with output_file.open(mode="w") as f:
@@ -93,13 +94,62 @@ class Pandaset2Kitti:
         scene = KittiScene(id_list=id_list, velodyne=velodyne, images=kitti_images, labels=[])
         scene.encode(str(output_file))
 
+    def get_camera_view_settings(
+        self,
+        camera_pose: Pose,
+        camera_intrinsics: Intrinsics,
+    ) -> CameraViewSettings:
+        """
+        3dpc-editorに視野角を表示するために必要な情報を生成。
+
+        Args:
+            camera_intrinsics: カメラの内部パラメータ
+            camera_pose: World座標系に対するCameraのpose
+            point_cloud_pose: World座標系に対するLiDar Sensorのpose
+
+        Returns:
+            CameraViewSettings
+        """
+        fov_x = 2 * math.atan(camera_intrinsics.cx / camera_intrinsics.fx)
+        # # sensorからworld座標に変換する行列
+        # P_WS = geoPose.from_pose_proto(point_cloud_pose)
+        # # cameraからworld座標に変換する行列
+        # P_WC = geoPose.from_pose_proto(camera_pose)
+
+        # sensorからcamera座標に変換する行列
+        P_CS = camera_pose.inverse()
+        # x軸を中心に-90度回転して、LiDar座標系のz軸の向きを合わせる
+        tmp_quaterion = Pose(wxyz=Quaternion(axis=[1, 0, 0], angle=-math.pi / 2).q)
+        tmp_PC_CS = tmp_quaterion * P_CS
+        yaw, _, _ = tmp_PC_CS.rotation.yaw_pitch_roll
+        # 3dpc editorはx軸を進行方向としているが、LiDarはy軸が進行方向になっているので、90度回転させる
+        # yawの回転軸が逆になっている。。。？
+        direction = -yaw + math.pi / 2
+
+        return CameraViewSettings(
+            fov=fov_x,
+            direction=direction,
+            position=XYZ(
+                camera_pose.translation[0],
+                camera_pose.translation[1],
+                camera_pose.translation[2],
+            ),
+        )
+
     def write_kitti_scene(self, seq: Sequence, output_dir: Path):
         seq.load_lidar()
 
         # 点群データの出力
         velodyne_dir = output_dir / "velodyne"
         velodyne_dir.mkdir(exist_ok=True, parents=True)
-        for index, lidar_data in enumerate(seq.lidar):
+        slice_obj = slice(None,None,10)
+
+        range_obj = range(0, len(seq.lidar.data), 10)
+        for index in range_obj:
+            filename = f"{str(index)}.bin"
+            lidar_data = seq.lidar.data[index]
+
+        for index, lidar_data in enumerate(seq.lidar.data):
             filename = f"{str(index)}.bin"
             self.write_velodyne_bin_file(lidar_data, output_file=velodyne_dir / filename)
 
@@ -128,14 +178,16 @@ class Pandaset2Kitti:
                 image_filename = f"{str(index)}.{FILE_EXTENSION}"
                 pillow_image_obj.save(str(image_dir / image_filename))
 
+            # 先頭のカメラposeを取得する
+            camera_view_settings = self.get_camera_view_settings(camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]), camera_intrinsics=camera_obj.intrinsics)
             kitti_images.append(
                 KittiImageSeries(
-                    image_dir=image_dir.name, calib_dir=calibration_dir.name, file_extension=FILE_EXTENSION
+                    image_dir=image_dir.name, calib_dir=calibration_dir.name, file_extension=FILE_EXTENSION, camera_view_settings=camera_view_settings)
                 )
             )
 
         # 拡張KITTI形式用のメタファイルを出力
-        id_list = [str(e) for e in range(len(seq.lidar))]
+        id_list = [str(e) for e in range(len(seq.lidar.data))]
         self.write_scene_meta_file(
             id_list=id_list,
             velodyne_dirname=velodyne_dir.name,
