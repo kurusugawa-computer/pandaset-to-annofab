@@ -21,6 +21,20 @@ logger = logging.getLogger(__name__)
 
 
 class Pandaset2Kitti:
+    def __init__(self, camera_name_list: Optional[list[str]] = None,) -> None:
+        if camera_name_list is None:
+            # Annofabで表示する補助画像の順番が自然になるようにする
+            self.camera_name_list = [
+                "front_camera",
+                "front_left_camera",
+                "front_right_camera",
+                "left_camera",
+                "right_camera",
+                "back_camera",
+            ]
+        else:
+            self.camera_name_list = camera_name_list
+
     def write_velodyne_bin_file(self, lidar_data: pandas.DataFrame, output_file: Path) -> None:
         """
         LiDARの点群データを、KITTIのvelodyne bin fileに出力する。
@@ -170,18 +184,7 @@ class Pandaset2Kitti:
 
         FILE_EXTENSION = "jpg"
 
-        # Annofabで表示する補助画像の順番が自然になるようにする
-        if camera_name_list is None:
-            camera_name_list = [
-                "front_camera",
-                "front_left_camera",
-                "front_right_camera",
-                "left_camera",
-                "right_camera",
-                "back_camera",
-            ]
-
-        for camera_name in camera_name_list:
+        for camera_name in self.camera_name_list:
             if camera_name not in sequence.camera:
                 logger.warning(f"{camera_name}の情報は存在しません。")
                 continue
@@ -246,7 +249,7 @@ def convert_pantadaset_to_kitti(pandaset_dir: Path, output_dir: Path, sequence_i
     for sequence_id in sequence_id_list:
         sequence = dataset[sequence_id]
         logger.info(f"{sequence_id=}をKITTIに変換します。")
-        main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
+        main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-", camera_name_list=)
 
 
 def parse_args():
