@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class Pandaset2Kitti:
-    def __init__(self, camera_name_list: Optional[list[str]] = None,) -> None:
+    def __init__(self, sampling_step: int = 1, camera_name_list: Optional[list[str]] = None) -> None:
+        self.sampling_step = sampling_step
         if camera_name_list is None:
             # Annofabで表示する補助画像の順番が自然になるようにする
             self.camera_name_list = [
@@ -155,7 +156,6 @@ class Pandaset2Kitti:
         self,
         sequence: Sequence,
         output_dir: Path,
-        sampling_step: int = 1,
         filename_prefix: str = "",
     ):
         def get_filename_stem(index: int) -> str:
@@ -163,10 +163,7 @@ class Pandaset2Kitti:
 
         sequence.load_lidar()
 
-        range_obj = range(0, len(sequence.lidar.data), sampling_step)
-
-        # 各ファイルの名前（拡張子を除く）に使うID
-        id_list = [str(e) for e in range_obj]
+        range_obj = range(0, len(sequence.lidar.data), self.sampling_step)
 
         # 点群データの出力
         velodyne_dir = output_dir / "velodyne"
@@ -225,30 +222,14 @@ class Pandaset2Kitti:
             )
 
         # 拡張KITTI形式用のメタファイルを出力
+        id_list = [get_filename_stem(index) for e in range_obj]
+
         self.write_scene_meta_file(
             id_list=id_list,
             velodyne_dirname=velodyne_dir.name,
             kitti_images=kitti_images,
             output_file=output_dir / "scene.meta",
         )
-
-
-def convert_pantadaset_to_kitti(pandaset_dir: Path, output_dir: Path, sequence_id_list: Optional[list[str]] = None, camera_name_list: Optional[list[str]] = None):
-    output_dir.mkdir(exist_ok=True, parents=True)
-
-    logger.info(f"{pandaset_dir} をKITTIに変換して、{output_dir}に出力します。")
-
-    main_obj = Pandaset2Kitti(camera_name_list=camera_name_list)
-
-    dataset = DataSet(str(pandaset_dir))
-
-    if sequence_id_list is None:
-        sequence_id_list = dataset.sequences()
-
-    for sequence_id in sequence_id_list:
-        sequence = dataset[sequence_id]
-        logger.info(f"{sequence_id=}をKITTIに変換します。")
-        main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
 
 
 def parse_args():
@@ -261,6 +242,7 @@ def parse_args():
 
     parser.add_argument("--sequence_id", type=str, nargs="+", required=False, help="出力対象のsequence id")
     parser.add_argument("--camera_name", type=str, nargs="+", required=False, help="出力対象のcamera name")
+    parser.add_argument("--sampling_step", type=int, default=1, required=False, help="指定した値ごとにフレームを出力します。")
 
     return parser.parse_args()
 
@@ -269,12 +251,30 @@ def main() -> None:
     args = parse_args()
     set_default_logger()
 
-    convert_pantadaset_to_kitti(
-        args.input_dir,
-        output_dir=args.output_dir,
-        sequence_id_list=args.sequence_id,
-        camera_name_list=args.camera_name,
-    )
+    output_dir: Path = args.output_dir
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    input_dir: Path = args.input_dir
+    logger.info(f"{input_dir} をKITTIに変換して、{output_dir}に出力します。")
+
+    main_obj = Pandaset2Kitti(camera_name_list=args.camera_name, sampling_step=args.sampling_step)
+
+    dataset = DataSet(str(input_dir))
+
+    if args.sequence_id is None:
+        sequence_id_list = dataset.sequences()
+    else:
+        sequence_id_list = args.sequence_id
+
+    for sequence_id in sequence_id_list:
+        sequence = dataset[sequence_id]
+        logger.info(f"{sequence_id=}をKITTIに変換します。")
+        try:
+            main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
+        except Exception:
+            logger.warning(f"{sequence_id=}のKITTIの変換に失敗しました。",exc_info=True)
+        finally:
+            dataset.unload(sequence_id)
 
 
 if __name__ == "__main__":
