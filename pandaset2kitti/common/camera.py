@@ -1,5 +1,5 @@
-from pandaset.sensors import Intrinsics
 import numpy
+from pandaset.sensors import Intrinsics
 
 
 def get_camera_matrix_from_intrinsics(intrinsics: Intrinsics) -> numpy.ndarray:

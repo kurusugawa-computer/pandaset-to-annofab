@@ -11,9 +11,9 @@ def set_default_logger():
     デフォルトのロガーを設定する。
     """
 
-    logging_formatter = "%(levelname)-8s : %(asctime)s : %(filename)s : %(name)s : %(funcName)s : %(message)s"
+    logging_formatter = "%(levelname)-8s : %(asctime)s : %(name)s : %(message)s"
     logging.basicConfig(format=logging_formatter)
-    logging.getLogger("dgp2kitti").setLevel(level=logging.DEBUG)
+    logging.getLogger("pandaset2kitti").setLevel(level=logging.DEBUG)
     logging.getLogger("__main__").setLevel(level=logging.DEBUG)
 
 
@@ -113,7 +113,7 @@ def get_hash_code(value: str) -> int:
 
 def read_lines(filepath: str) -> List[str]:
     """ファイルを行単位で読み込む。改行コードを除く"""
-    with open(filepath) as f:
+    with open(filepath, encoding="utf-8") as f:
         lines = f.readlines()
     return [e.rstrip("\r\n") for e in lines]
 

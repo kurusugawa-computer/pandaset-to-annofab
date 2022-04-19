@@ -21,6 +21,7 @@
         "astype",
         "asyncio",
         "bokeh",
+        "calib",
         "dateutil",
         "ddof",
         "dropna",
@@ -56,7 +57,9 @@
         "pyquery",
         "quantile",
         "strtobool",
+        "tofile",
         "tolist",
-        "tzlocal"
+        "tzlocal",
+        "velodyne"
     ]
 }

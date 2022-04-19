@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy
-
 from dgp.proto.annotations_pb2 import AnnotationType, BoundingBox2DAnnotations, BoundingBox3DAnnotations
 from dgp.proto.dataset_pb2 import Dataset, Ontology
 from dgp.proto.geometry_pb2 import CameraIntrinsics, Pose

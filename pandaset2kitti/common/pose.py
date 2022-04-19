@@ -1,6 +1,7 @@
 import numpy
 from pyquaternion import Quaternion
 
+
 class Pose:
     """
     SE(3) rigid transform class that allows compounding of 6-DOF poses
@@ -8,6 +9,7 @@ class Pose:
 
     https://github.com/TRI-ML/dgp/blob/6ff13df792ac210a7b4e3c2f11c57079ac9c884a/dgp/utils/pose.py を流用しました。
     """
+
     def __init__(self, wxyz=numpy.float64([1, 0, 0, 0]), tvec=numpy.float64([0, 0, 0])):
         """Initialize a Pose with Quaternion and 3D Position
 
@@ -23,10 +25,9 @@ class Pose:
         self.tvec = tvec
 
     def __repr__(self):
-        formatter = {'float_kind': lambda x: '%.2f' % x}
+        formatter = {"float_kind": lambda x: "%.2f" % x}
         tvec_str = numpy.array2string(self.tvec, formatter=formatter)
-        return 'wxyz: {}, tvec: ({})'.format(self.quat, tvec_str)
-
+        return "wxyz: {}, tvec: ({})".format(self.quat, tvec_str)
 
     def __mul__(self, other):
         """Left-multiply Pose with another Pose or 3D-Points.
@@ -50,12 +51,12 @@ class Pose:
             q = self.quat * other.quat
             return self.__class__(q, t)
         else:
-            assert other.shape[-1] == 3, 'Point cloud is not 3-dimensional'
+            assert other.shape[-1] == 3, "Point cloud is not 3-dimensional"
             X = numpy.hstack([other, numpy.ones((len(other), 1))]).T
             return (numpy.dot(self.matrix, X).T)[:, :3]
 
     def __rmul__(self, other):
-        raise NotImplementedError('Right multiply not implemented yet!')
+        raise NotImplementedError("Right multiply not implemented yet!")
 
     def inverse(self):
         """Returns a new Pose that corresponds to the
@@ -129,7 +130,48 @@ class Pose:
         -------
         Pose
         """
-        return cls(wxyz=Quaternion(matrix=transformation_matrix[:3, :3]), tvec=numpy.float64(transformation_matrix[:3, 3]))
+        return cls(
+            wxyz=Quaternion(matrix=transformation_matrix[:3, :3]), tvec=numpy.float64(transformation_matrix[:3, 3])
+        )
 
     def __eq__(self, other):
         return self.quat == other.quat and (self.tvec == other.tvec).all()
+
+    @classmethod
+    def from_pandaset_pose(cls, pandaset_pose: dict[str, dict[str, float]]) -> "Pose":
+        """pandasetのposeから、生成します。
+
+        Args:
+            dict_pose: pandasetのpose
+        """
+
+        heading = pandaset_pose["heading"]
+        rotation = numpy.float64([heading["w"], heading["x"], heading["y"], heading["z"]])  # type: ignore
+
+        position = pandaset_pose["position"]
+        translation = numpy.float64([position["x"], position["y"], position["z"]])  # type: ignore
+        return cls(wxyz=rotation, tvec=translation)
+
+    @property
+    def pandaset_pose(self) -> dict[str, dict[str, float]]:
+        """pandaset用のposeに変換します。
+
+        Returns:
+            pandaset用のpose
+        """
+        position = {
+            "x": self.tvec[0],
+            "y": self.tvec[1],
+            "z": self.tvec[2],
+        }
+
+        heading = {
+            "w": self.quat[0],
+            "x": self.quat[1],
+            "y": self.quat[2],
+            "z": self.quat[3],
+        }
+        return {
+            "position": position,
+            "heading": heading,
+        }
