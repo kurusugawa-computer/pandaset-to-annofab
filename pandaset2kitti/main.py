@@ -143,7 +143,7 @@ class Pandaset2Kitti:
         output_dir: Path,
         sampling_step: int = 1,
         filename_prefix: str = "",
-        camera_name_list: Optional[list] = None,
+        camera_name_list: Optional[list[str]] = None,
     ):
         def get_filename_stem(index: int) -> str:
             return f"{filename_prefix}{str(index)}"
@@ -171,7 +171,7 @@ class Pandaset2Kitti:
         FILE_EXTENSION = "jpg"
 
         # Annofabで表示する補助画像の順番が自然になるようにする
-        if camera_name_list is not None:
+        if camera_name_list is None:
             camera_name_list = [
                 "front_camera",
                 "front_left_camera",
