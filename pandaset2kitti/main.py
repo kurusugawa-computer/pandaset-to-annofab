@@ -157,7 +157,6 @@ class Pandaset2Kitti:
         output_dir: Path,
         sampling_step: int = 1,
         filename_prefix: str = "",
-        camera_name_list: Optional[list[str]] = None,
     ):
         def get_filename_stem(index: int) -> str:
             return f"{filename_prefix}{str(index)}"
@@ -186,7 +185,7 @@ class Pandaset2Kitti:
 
         for camera_name in self.camera_name_list:
             if camera_name not in sequence.camera:
-                logger.warning(f"{camera_name}の情報は存在しません。")
+                logger.warning(f"{camera_name=}の情報は存在しません。")
                 continue
 
             camera_obj = sequence.camera[camera_name]
@@ -234,12 +233,12 @@ class Pandaset2Kitti:
         )
 
 
-def convert_pantadaset_to_kitti(pandaset_dir: Path, output_dir: Path, sequence_id_list: Optional[list[str]] = None):
+def convert_pantadaset_to_kitti(pandaset_dir: Path, output_dir: Path, sequence_id_list: Optional[list[str]] = None, camera_name_list: Optional[list[str]] = None):
     output_dir.mkdir(exist_ok=True, parents=True)
 
     logger.info(f"{pandaset_dir} をKITTIに変換して、{output_dir}に出力します。")
 
-    main_obj = Pandaset2Kitti()
+    main_obj = Pandaset2Kitti(camera_name_list=camera_name_list)
 
     dataset = DataSet(str(pandaset_dir))
 
@@ -249,7 +248,7 @@ def convert_pantadaset_to_kitti(pandaset_dir: Path, output_dir: Path, sequence_i
     for sequence_id in sequence_id_list:
         sequence = dataset[sequence_id]
         logger.info(f"{sequence_id=}をKITTIに変換します。")
-        main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-", camera_name_list=)
+        main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
 
 
 def parse_args():
@@ -261,7 +260,7 @@ def parse_args():
     parser.add_argument("-o", "--output_dir", type=Path, required=True, help="出力先ディレクトリ")
 
     parser.add_argument("--sequence_id", type=str, nargs="+", required=False, help="出力対象のsequence id")
-    parser.add_argument("--sequence_id", type=str, nargs="+", required=False, help="出力対象のsequence id")
+    parser.add_argument("--camera_name", type=str, nargs="+", required=False, help="出力対象のcamera name")
 
     return parser.parse_args()
 
@@ -274,6 +273,7 @@ def main() -> None:
         args.input_dir,
         output_dir=args.output_dir,
         sequence_id_list=args.sequence_id,
+        camera_name_list=args.camera_name,
     )
 
 
