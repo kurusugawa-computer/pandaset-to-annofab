@@ -186,7 +186,7 @@ class Pandaset2Kitti:
 
             for index in range_obj:
                 pillow_image_obj = camera_obj.data[index]
-                dict_camera_pose = camera_obj.poses[0]
+                dict_camera_pose = camera_obj.poses[index]
                 dict_lidar_pose = sequence.lidar.poses[index]
                 calibration_filename = f"{get_filename_stem(index)}.txt"
                 self.write_calibration_file(
