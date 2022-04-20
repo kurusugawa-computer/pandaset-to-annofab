@@ -222,7 +222,7 @@ class Pandaset2Kitti:
             )
 
         # 拡張KITTI形式用のメタファイルを出力
-        id_list = [get_filename_stem(index) for e in range_obj]
+        id_list = [get_filename_stem(index) for index in range_obj]
 
         self.write_scene_meta_file(
             id_list=id_list,
@@ -272,7 +272,7 @@ def main() -> None:
         try:
             main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
         except Exception:
-            logger.warning(f"{sequence_id=}のKITTIの変換に失敗しました。",exc_info=True)
+            logger.warning(f"{sequence_id=}のKITTIの変換に失敗しました。", exc_info=True)
         finally:
             dataset.unload(sequence_id)
 
