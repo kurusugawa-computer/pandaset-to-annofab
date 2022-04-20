@@ -36,30 +36,36 @@ class Pandaset2Kitti:
         else:
             self.camera_name_list = camera_name_list
 
-    def write_velodyne_bin_file(self, lidar_data: pandas.DataFrame, output_file: Path) -> None:
+    def write_velodyne_bin_file(self, lidar_data: pandas.DataFrame, lidar_pose: Pose, output_file: Path) -> None:
         """
         LiDARの点群データを、KITTIのvelodyne bin fileに出力する。
 
-        KIITIのvelodyneファイルのフォーマット
+        KITTIのvelodyneファイルのフォーマット
         https://github.com/yanii/kitti-pcl/blob/3b4ebfd49912702781b7c5b1cf88a00a8974d944/KITTI_README.TXT#L51-L67
         変換方法
         (N,3) -> (N,4) -> (1,M)
 
-        Args:
-            point_cloud: Point Cloud情報
-            output_file: 出力ファイル（velodyneのbinファイル）
         """
+        # グローバル座標系からlidar座標系に変換する
+        # そうしないと、自車の中心が原点でなくなる
+        original_data = lidar_data[["x", "y", "z"]].values
+        converted_data = lidar_pose.inverse() * original_data
 
-        df = lidar_data[["x", "y", "z", "i"]]
+        data = numpy.hstack(
+            (
+                converted_data,
+                lidar_data[["i"]].values,
+            )
+        )
         # 1次元の配列に変換する
-        flatten_data = df.values.flatten().astype(numpy.float32)
+        flatten_data = data.flatten().astype(numpy.float32)
         output_file.parent.mkdir(exist_ok=True, parents=True)
         flatten_data.tofile(str(output_file))
 
     def write_calibration_file(
         self,
-        lidar_pose: Pose,
         camera_pose: Pose,
+        lidar_pose: Pose,
         camera_intrinsics: Intrinsics,
         output_file: Path,
     ) -> None:
@@ -78,8 +84,8 @@ class Pandaset2Kitti:
 
         R0_rect = numpy.eye(3)
 
-        # 3x4 matrix
-        Tr_velo_to_cam = (camera_pose.inverse()).matrix[:3, :]
+        # lidar座標系→world座標系→camera座標系に変換する。行列サイズは3x4
+        Tr_velo_to_cam = (camera_pose.inverse() * lidar_pose).matrix[:3, :]
 
         output_file.parent.mkdir(exist_ok=True, parents=True)
         with output_file.open(mode="w") as f:
@@ -96,14 +102,7 @@ class Pandaset2Kitti:
     ):
 
         """
-        scene.meta ファイル（annofab-3dpc-editor-cli が読み込むファイル）
-
-        Args:
-            id_list:
-            image_dir_for_label: labelに対応するimage_dir
-            output_scene_dir:
-
-        Returns:
+        scene.meta ファイルを生成します。
 
         """
         velodyne = KittiVelodyneSeries(velodyne_dir=velodyne_dirname)
@@ -112,30 +111,22 @@ class Pandaset2Kitti:
 
     def get_camera_view_setting(
         self,
+        lidar_pose: Pose,
         camera_pose: Pose,
         camera_intrinsics: Intrinsics,
     ) -> CameraViewSettings:
         """
         3dpc-editorに視野角を表示するために必要な情報を生成。
 
-        Args:
-            camera_intrinsics: カメラの内部パラメータ
-            camera_pose: World座標系に対するCameraのpose
-            point_cloud_pose: World座標系に対するLiDar Sensorのpose
-
         Returns:
             CameraViewSettings
         """
         fov_x = 2 * math.atan(camera_intrinsics.cx / camera_intrinsics.fx)
-        # # sensorからworld座標に変換する行列
-        # P_WS = geoPose.from_pose_proto(point_cloud_pose)
-        # # cameraからworld座標に変換する行列
-        # P_WC = geoPose.from_pose_proto(camera_pose)
-
-        # sensorからcamera座標に変換する行列
-        P_CS = camera_pose.inverse()
+        # lidarからcamera座標に変換する行列
+        P_CS = camera_pose.inverse() * lidar_pose
         # x軸を中心に-90度回転して、LiDar座標系のz軸の向きを合わせる
         tmp_quaterion = Pose(wxyz=Quaternion(axis=[1, 0, 0], angle=-math.pi / 2).q)
+        # lidarからカメラ
         tmp_PC_CS = tmp_quaterion * P_CS
         yaw, _, _ = tmp_PC_CS.rotation.yaw_pitch_roll
         # 3dpc editorはx軸を進行方向としているが、LiDarはy軸が進行方向になっているので、90度回転させる
@@ -172,7 +163,8 @@ class Pandaset2Kitti:
         for index in range_obj:
             filename = f"{get_filename_stem(index)}.bin"
             lidar_data = sequence.lidar.data[index]
-            self.write_velodyne_bin_file(lidar_data, output_file=velodyne_dir / filename)
+            dict_lidar_pose = sequence.lidar.poses[index]
+            self.write_velodyne_bin_file(lidar_data, lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose), output_file=velodyne_dir / filename)
 
         # カメラ画像とキャリブレーションファイルの出力
         sequence.load_camera()
@@ -194,13 +186,12 @@ class Pandaset2Kitti:
 
             for index in range_obj:
                 pillow_image_obj = camera_obj.data[index]
-                dict_lidar_pose = sequence.lidar.poses[0]
                 dict_camera_pose = camera_obj.poses[0]
-
+                dict_lidar_pose = sequence.lidar.poses[index]
                 calibration_filename = f"{get_filename_stem(index)}.txt"
                 self.write_calibration_file(
-                    lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose),
                     camera_pose=Pose.from_pandaset_pose(dict_camera_pose),
+                    lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose),
                     camera_intrinsics=camera_obj.intrinsics,
                     output_file=calibration_dir / calibration_filename,
                 )
@@ -210,7 +201,7 @@ class Pandaset2Kitti:
 
             # 先頭のカメラposeを取得する
             camera_view_setting = self.get_camera_view_setting(
-                camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]), camera_intrinsics=camera_obj.intrinsics
+                lidar_pose=Pose.from_pandaset_pose(sequence.lidar.poses[0]), camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]), camera_intrinsics=camera_obj.intrinsics
             )
             kitti_images.append(
                 KittiImageSeries(

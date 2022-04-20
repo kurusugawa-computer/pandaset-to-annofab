@@ -29,12 +29,12 @@ class Pose:
         tvec_str = numpy.array2string(self.tvec, formatter=formatter)
         return "wxyz: {}, tvec: ({})".format(self.quat, tvec_str)
 
-    def __mul__(self, other: "Pose") -> "Pose":
+    def __mul__(self, other):
         """Left-multiply Pose with another Pose or 3D-Points.
 
         Parameters
         ----------
-        other: Pose or numpy.ndarray
+        other: Pose or np.ndarray
             1. Pose: Identical to oplus operation.
                (i.e. self_pose * other_pose)
             2. ndarray: transform [N x 3] point set
@@ -42,13 +42,18 @@ class Pose:
 
         Returns
         ----------
-        result: Pose or numpy.ndarray
+        result: Pose or np.ndarray
             Transformed pose or point cloud
         """
-        assert isinstance(other, self.__class__)
-        t = self.quat.rotate(other.tvec) + self.tvec
-        q = self.quat * other.quat
-        return self.__class__(q, t)
+        if isinstance(other, Pose):
+            assert isinstance(other, self.__class__)
+            t = self.quat.rotate(other.tvec) + self.tvec
+            q = self.quat * other.quat
+            return self.__class__(q, t)
+        else:
+            assert other.shape[-1] == 3, 'Point cloud is not 3-dimensional'
+            X = numpy.hstack([other, numpy.ones((len(other), 1))]).T
+            return (numpy.dot(self.matrix, X).T)[:, :3]
 
     def inverse(self):
         """Returns a new Pose that corresponds to the

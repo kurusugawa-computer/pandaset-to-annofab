@@ -60,6 +60,7 @@
         "tofile",
         "tolist",
         "tzlocal",
+        "velo",
         "velodyne"
     ]
 }
