@@ -10,9 +10,9 @@ while read -r f; do
 
   # ファイル一つ毎の処理
   echo "file: $f"
-  anno3d project upload_scene --project_id ${PROJECT_ID} --force --upload_kind data --scene_path $f
+  anno3d project upload_scene --project_id ${PROJECT_ID} --force --upload_kind data --sensor_height 0 --scene_path $f 
 
-done < <(find out/kitti4 -mindepth 1 -maxdepth 1)
+done < <(find out/kitti -mindepth 1 -maxdepth 1)
 
 
 popd

@@ -1,0 +1,27 @@
+label_id,label_name
+Animals__-__Other,Animals - Other
+Bicycle,Bicycle
+Bus,Bus
+Car,Car
+Cones,Cones
+Construction__Signs,Construction Signs
+Emergency__Vehicle,Emergency Vehicle
+Medium-sized__Truck,Medium-sized Truck
+Motorcycle,Motorcycle
+Motorized__Scooter,Motorized Scooter
+Other__Vehicle__-__Construction__Vehicle,Other Vehicle - Construction Vehicle
+Other__Vehicle__-__Pedicab,Other Vehicle - Pedicab
+Other__Vehicle__-__Uncommon,Other Vehicle - Uncommon
+Pedestrian,Pedestrian
+Pedestrian__with__Object,Pedestrian with Object
+Personal__Mobility__Device,Personal Mobility Device
+Pickup__Truck,Pickup Truck
+Pylons,Pylons
+Road__Barriers,Road Barriers
+Rolling__Containers,Rolling Containers
+Semi-truck,Semi-truck
+Signs,Signs
+Temporary__Construction__Barriers,Temporary Construction Barriers
+Towed__Object,Towed Object
+Train,Train
+Tram______Subway,Tram / Subway
