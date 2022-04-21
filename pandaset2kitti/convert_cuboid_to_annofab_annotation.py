@@ -52,7 +52,6 @@ class Cuboid2Annofab:
         # pandasetのyawはY軸に対するyawなので、-math.pi/2を加える
         yaw = tmp_yaw + cuboid["yaw"] - math.pi / 2
 
-        logger.debug(f"{cuboid['uuid']=}, {yaw=}, degree={yaw*180/math.pi}")
         rotation = EulerAnglesZXY(0, 0, yaw)
         cuboid_data = CuboidAnnotationDetailDataV2(
             CuboidShapeV2(
