@@ -49,8 +49,8 @@ class Cuboid2Annofab:
 
         # X軸に対するZ軸の回転角度
         tmp_yaw, _, _ = lidar_pose.inverse().rotation.yaw_pitch_roll
-        # pandasetのyawはY軸に対するyawなので、-math.pi/2を加える
-        yaw = tmp_yaw + cuboid["yaw"] - math.pi / 2
+        # pandasetのyawはY軸に対するyawなので、math.pi/2を加える
+        yaw = tmp_yaw + cuboid["yaw"] + math.pi / 2
 
         rotation = EulerAnglesZXY(0, 0, yaw)
         cuboid_data = CuboidAnnotationDetailDataV2(
@@ -88,7 +88,7 @@ class Cuboid2Annofab:
             "annotation_id": cuboid["uuid"],
             "label": cuboid["label"],
             "attributes": attributes,
-            "data": {"data": cuboid_data.to_json(), "_type": "Unknown"},
+            "data": cuboid_data.dump()
         }
         return result
 
