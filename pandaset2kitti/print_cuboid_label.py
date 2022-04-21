@@ -60,10 +60,10 @@ def main() -> None:
         finally:
             dataset.unload(sequence_id)
 
-    labels = sorted(labels)
-    label_ids = [get_annofab_label_id_from_pandaset(label) for label in labels]
+    label_list = sorted(labels)
+    label_ids = [get_annofab_label_id_from_pandaset(label) for label in label_list]
 
-    df = pandas.DataFrame({"label_id": label_ids, "label_name": labels})
+    df = pandas.DataFrame({"label_id": label_ids, "label_name": label_list})
     output: Path = args.output
     output.parent.mkdir(exist_ok=True, parents=True)
     df.to_csv(str(output), index=False)
