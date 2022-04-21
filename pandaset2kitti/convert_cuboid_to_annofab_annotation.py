@@ -20,7 +20,7 @@ from pandaset2kitti.common.utils import set_default_logger
 logger = logging.getLogger(__name__)
 
 
-class Pandaset2Kitti:
+class Cuboid2Annofab:
     def __init__(self, sampling_step: int = 1, camera_name_list: Optional[list[str]] = None) -> None:
         self.sampling_step = sampling_step
         if camera_name_list is None:
@@ -146,7 +146,7 @@ class Pandaset2Kitti:
             ),
         )
 
-    def write_kitti_scene(
+    def write_cuboid_annotations(
         self,
         sequence: Sequence,
         output_dir: Path,
@@ -158,6 +158,11 @@ class Pandaset2Kitti:
         sequence.load_lidar()
 
         range_obj = range(0, len(sequence.lidar.data), self.sampling_step)
+
+
+        sequence.load_cuboids()
+
+        
 
         # 点群データの出力
         velodyne_dir = output_dir / "velodyne"
@@ -228,14 +233,13 @@ class Pandaset2Kitti:
 
 def parse_args():
     parser = ArgumentParser(
-        description="PandaSetを拡張KITTI形式に変換します。",
+        description="PandaSetのcuboidをAnnofabのアノテーションフォーマットに変換します。`annofabcli annotation import`コマンドでインポートすることを想定しています。",
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("-i", "--input_dir", type=Path, required=True, help="pandasetのディレクトリ")
     parser.add_argument("-o", "--output_dir", type=Path, required=True, help="出力先ディレクトリ")
 
     parser.add_argument("--sequence_id", type=str, nargs="+", required=False, help="出力対象のsequence id")
-    parser.add_argument("--camera_name", type=str, nargs="+", required=False, help="出力対象のcamera name")
     parser.add_argument("--sampling_step", type=int, default=1, required=False, help="指定した値ごとにフレームを出力します。")
 
     return parser.parse_args()
@@ -249,7 +253,7 @@ def main() -> None:
     output_dir.mkdir(exist_ok=True, parents=True)
 
     input_dir: Path = args.input_dir
-    logger.info(f"{input_dir} をKITTIに変換して、{output_dir}に出力します。")
+    logger.info(f"{input_dir} をKITTIに変換して、{output_dir}にAnnofabのアノテーションを出力します。")
 
     main_obj = Pandaset2Kitti(camera_name_list=args.camera_name, sampling_step=args.sampling_step)
 

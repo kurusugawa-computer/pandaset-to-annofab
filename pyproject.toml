@@ -17,6 +17,7 @@ requests = "*"
 pyquaternion = "^0.9.9"
 dataclasses-json = "^0.5.7"
 more-itertools = "^8.12.0"
+annofabapi-3dpc-extensions = "^0.1.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
