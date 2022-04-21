@@ -1,3 +1,4 @@
+import numpy
 import json
 import logging
 import math
@@ -5,7 +6,6 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from pathlib import Path
 from typing import Any
 
-import numpy
 import pandas
 from annofab_3dpc.annotation import (
     CuboidAnnotationDetailDataV2,
@@ -21,6 +21,7 @@ from pandaset.sequence import Sequence
 
 from pandaset2kitti.common.pose import Pose
 from pandaset2kitti.common.utils import set_default_logger
+from pandaset2kitti.common.annofab import get_annofab_label_id_from_pandaset
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +42,12 @@ class Cuboid2Annofab:
         """1個のcuboidに対応するAnnofabのアノテーションを取得します。"""
 
         # lidar座標系のpositionを取得する
-        print(f"{cuboid=}")
-        tmp = numpy.array([[cuboid["position.x"], cuboid["position.y"], cuboid["position.z"]]])
-        print(f"{tmp.shape=}")
-        position_in_lidar_coordinate = lidar_pose.inverse() * numpy.array(
-            [[cuboid["position.x"], cuboid["position.y"], cuboid["position.z"]]]
-        )
+        tmp = numpy.array([
+            [cuboid["position.x"], cuboid["position.y"], cuboid["position.z"]]
+        ])
+        position_in_lidar_coordinate = lidar_pose.inverse() * numpy.array([
+            [cuboid["position.x"], cuboid["position.y"], cuboid["position.z"]]
+        ])
 
         # X軸に対するZ軸の回転角度
         tmp_yaw, _, _ = lidar_pose.inverse().rotation.yaw_pitch_roll
@@ -71,7 +72,6 @@ class Cuboid2Annofab:
             )
         )
 
-        print(f"{cuboid_data=}")
         attributes = {
             "object_motion": "attributes.object_motion",
             "rider_status": "attributes.rider_status",
@@ -80,7 +80,7 @@ class Cuboid2Annofab:
         }
         result = {
             "annotation_id": cuboid["uuid"],
-            "label": cuboid["label"],
+            "label": get_annofab_label_id_from_pandaset(cuboid["label"]),
             "attributes": attributes,
             "data": {"data": cuboid_data.to_json(), "_type": "Unknown"},
         }
@@ -101,6 +101,7 @@ class Cuboid2Annofab:
     ):
         def get_input_data(index: int) -> str:
             return f"{task_id}-{str(index)}"
+
 
         output_dir.mkdir(exist_ok=True, parents=True)
         sequence.load_lidar()
