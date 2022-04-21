@@ -51,7 +51,7 @@ class Pose:
             q = self.quat * other.quat
             return self.__class__(q, t)
         else:
-            assert other.shape[-1] == 3, 'Point cloud is not 3-dimensional'
+            assert other.shape[-1] == 3, "Point cloud is not 3-dimensional"
             X = numpy.hstack([other, numpy.ones((len(other), 1))]).T
             return (numpy.dot(self.matrix, X).T)[:, :3]
 

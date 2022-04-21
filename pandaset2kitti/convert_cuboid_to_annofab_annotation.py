@@ -1,19 +1,23 @@
+import json
 import logging
 import math
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
-import numpy
 import pandas
+from annofab_3dpc.annotation import (
+    CuboidAnnotationDetailDataV2,
+    CuboidDirection,
+    CuboidShapeV2,
+    EulerAnglesZXY,
+    Location,
+    Size,
+    Vector3,
+)
 from pandaset import DataSet
-from pandaset.sensors import Intrinsics
 from pandaset.sequence import Sequence
-from pyquaternion import Quaternion
 
-from pandaset2kitti.common.camera import get_camera_matrix_from_intrinsics
-from pandaset2kitti.common.kitti import XYZ, CameraViewSettings, KittiImageSeries, KittiVelodyneSeries
-from pandaset2kitti.common.kitti import Scene as KittiScene
 from pandaset2kitti.common.pose import Pose
 from pandaset2kitti.common.utils import set_default_logger
 
@@ -21,214 +25,93 @@ logger = logging.getLogger(__name__)
 
 
 class Cuboid2Annofab:
-    def __init__(self, sampling_step: int = 1, camera_name_list: Optional[list[str]] = None) -> None:
+    def __init__(self, sampling_step: int = 1) -> None:
         self.sampling_step = sampling_step
-        if camera_name_list is None:
-            # Annofabで表示する補助画像の順番が自然になるようにする
-            self.camera_name_list = [
-                "front_camera",
-                "front_left_camera",
-                "front_right_camera",
-                "left_camera",
-                "right_camera",
-                "back_camera",
-            ]
-        else:
-            self.camera_name_list = camera_name_list
 
-    def write_velodyne_bin_file(self, lidar_data: pandas.DataFrame, lidar_pose: Pose, output_file: Path) -> None:
-        """
-        LiDARの点群データを、KITTIのvelodyne bin fileに出力する。
+    # def get_direction(self, pose) -> CuboidDirection:
+    #     rotation_matrix = geoPose.from_pose_proto(pose).rotation_matrix
+    #     before_front = numpy.array([1, 0, 0]).T
+    #     before_up = numpy.array([0, 0, 1]).T
+    #     front = (rotation_matrix @ before_front).flatten()
+    #     up = (rotation_matrix @ before_up).flatten()
+    #     return CuboidDirection(front=XYZ(front[0], front[1], front[2]), up=XYZ(up[0], up[1], up[2]))
 
-        KITTIのvelodyneファイルのフォーマット
-        https://github.com/yanii/kitti-pcl/blob/3b4ebfd49912702781b7c5b1cf88a00a8974d944/KITTI_README.TXT#L51-L67
-        変換方法
-        (N,3) -> (N,4) -> (1,M)
+    def get_annotation_detail(self, cuboid: dict[str, Any], lidar_pose: Pose) -> dict[str, Any]:
+        """1個のcuboidに対応するAnnofabのアノテーションを取得します。"""
 
-        """
-        # グローバル座標系からlidar座標系に変換する
-        # そうしないと、自車の中心が原点でなくなる
-        original_data = lidar_data[["x", "y", "z"]].values
-        converted_data = lidar_pose.inverse() * original_data
+        # lidar座標系のpositionを取得する
+        position_in_lidar_coordinate = lidar_pose.inverse() * [
+            [cuboid["position.x"], cuboid["position.y"], cuboid["position.z"]]
+        ]
 
-        data = numpy.hstack(
-            (
-                converted_data,
-                lidar_data[["i"]].values,
+        # X軸に対するZ軸の回転角度
+        tmp_yaw, _, _ = lidar_pose.inverse().rotation.yaw_pitch_roll
+        # pandasetのyawはY軸に対するyawなので、-math.pi/2を加える
+        yaw = tmp_yaw + cuboid["yaw"] - math.pi / 2
+
+        cuboid_data = CuboidAnnotationDetailDataV2(
+            CuboidShapeV2(
+                dimensions=Size(
+                    width=cuboid["dimensions.x"],
+                    height=cuboid["dimensions.z"],
+                    depth=cuboid["dimensions.y"],
+                ),
+                location=Location(
+                    position_in_lidar_coordinate[0][0],
+                    position_in_lidar_coordinate[0][1],
+                    position_in_lidar_coordinate[0][2],
+                ),
+                #
+                rotation=EulerAnglesZXY(0, 0, yaw),
+                direction=CuboidDirection(front=Vector3(1, 0, 0), up=Vector3(0, 0, 1)),
             )
         )
-        # 1次元の配列に変換する
-        flatten_data = data.flatten().astype(numpy.float32)
-        output_file.parent.mkdir(exist_ok=True, parents=True)
-        flatten_data.tofile(str(output_file))
 
-    def write_calibration_file(
-        self,
-        camera_pose: Pose,
-        lidar_pose: Pose,
-        camera_intrinsics: Intrinsics,
-        output_file: Path,
-    ) -> None:
-        """
-        KITTIのcalibration ファイルを生成する。
+        attributes = {
+            "object_motion": "attributes.object_motion",
+            "rider_status": "attributes.rider_status",
+            "pedestrian_behavior": "attributes.pedestrian_behavior",
+            "pedestrian_age": "attributes.pedestrian_age",
+        }
+        result = {
+            "annotation_id": cuboid["uuid"],
+            "label": cuboid["label"],
+            "attributes": attributes,
+            "data": {"data": json.dumps(cuboid_data, ensure_ascii=False), "_type": "Unknown"},
+        }
+        return result
 
-        Args:
-            camera_intrinsics: カメラの内部パラメータ
-            camera_pose: World座標系に対するCameraのpose
-            point_cloud_pose: World座標系に対するLiDar Sensorのpose
-            output_file: 出力先
+    def write_cuboid_annotation_json(self, cuboid_data: pandas.DataFrame, lidar_pose: Pose, output_file: Path):
+        cuboid_list = cuboid_data.to_dict("records")
+        annotation_details = [self.get_annotation_detail(cuboid_data, lidar_pose) for cuboid in cuboid_list]
 
-        """
-        P2 = numpy.zeros((3, 4))
-        P2[:3, :3] = get_camera_matrix_from_intrinsics(camera_intrinsics)
-
-        R0_rect = numpy.eye(3)
-
-        # lidar座標系→world座標系→camera座標系に変換する。行列サイズは3x4
-        Tr_velo_to_cam = (camera_pose.inverse() * lidar_pose).matrix[:3, :]
-
-        output_file.parent.mkdir(exist_ok=True, parents=True)
         with output_file.open(mode="w") as f:
-            f.write(f"P2: {' '.join([str(elem) for elem in P2.flatten()])}\n")
-            f.write(f"R0_rect: {' '.join([str(elem) for elem in R0_rect.flatten()])}\n")
-            f.write(f"Tr_velo_to_cam: {' '.join([str(elem) for elem in Tr_velo_to_cam.flatten()])}\n")
-
-    def write_scene_meta_file(
-        self,
-        id_list: list[str],
-        velodyne_dirname: str,
-        kitti_images: list[KittiImageSeries],
-        output_file: Path,
-    ):
-
-        """
-        scene.meta ファイルを生成します。
-
-        """
-        velodyne = KittiVelodyneSeries(velodyne_dir=velodyne_dirname)
-        scene = KittiScene(id_list=id_list, velodyne=velodyne, images=kitti_images, labels=[])
-        scene.encode(str(output_file))
-
-    def get_camera_view_setting(
-        self,
-        lidar_pose: Pose,
-        camera_pose: Pose,
-        camera_intrinsics: Intrinsics,
-    ) -> CameraViewSettings:
-        """
-        3dpc-editorに視野角を表示するために必要な情報を生成。
-
-        Returns:
-            CameraViewSettings
-        """
-        fov_x = 2 * math.atan(camera_intrinsics.cx / camera_intrinsics.fx)
-
-        # z軸を中心にした回転角度[ラジアン]を取得する。0のときはX軸方向を指す
-
-        # x軸を中心に-90度回転して、カメラ座標系のZ軸の向きをLiDar座標系のz軸の向きを合わせる
-        tmp_quaterion = Pose(wxyz=Quaternion(axis=[1, 0, 0], angle=-math.pi / 2).q)
-        # lidar座標系からカメラ座標系（Z軸が上方向）へのyawを取得する
-        tmp_PC_CS = tmp_quaterion * camera_pose.inverse() * lidar_pose
-        yaw, _, _ = tmp_PC_CS.rotation.yaw_pitch_roll
-
-        # 3dpc editorはx軸を進行方向としているが、LiDarはy軸が進行方向になっているので、90度回転させる
-        # yawの回転軸が逆になっている。。。？
-        direction = -yaw + math.pi / 2
-
-        lidar_to_camera_pose = lidar_pose.inverse() * camera_pose
-        return CameraViewSettings(
-            fov=fov_x,
-            direction=direction,
-            position=XYZ(
-                lidar_to_camera_pose.translation[0],
-                lidar_to_camera_pose.translation[1],
-                lidar_to_camera_pose.translation[2],
-            ),
-        )
+            json.dump({"details": annotation_details}, f)
 
     def write_cuboid_annotations(
         self,
         sequence: Sequence,
         output_dir: Path,
-        filename_prefix: str = "",
+        task_id: str,
     ):
-        def get_filename_stem(index: int) -> str:
-            return f"{filename_prefix}{str(index)}"
+        def get_input_data(index: int) -> str:
+            return f"{task_id}-{str(index)}"
 
         sequence.load_lidar()
 
         range_obj = range(0, len(sequence.lidar.data), self.sampling_step)
 
-
         sequence.load_cuboids()
 
-        
-
-        # 点群データの出力
-        velodyne_dir = output_dir / "velodyne"
-        velodyne_dir.mkdir(exist_ok=True, parents=True)
-
         for index in range_obj:
-            filename = f"{get_filename_stem(index)}.bin"
-            lidar_data = sequence.lidar.data[index]
+            filename = f"{get_input_data(index)}.json"
+
+            cuboid_data = sequence.cuboids.data[index]
+
             dict_lidar_pose = sequence.lidar.poses[index]
-            self.write_velodyne_bin_file(lidar_data, lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose), output_file=velodyne_dir / filename)
-
-        # カメラ画像とキャリブレーションファイルの出力
-        sequence.load_camera()
-        kitti_images = []
-
-        FILE_EXTENSION = "jpg"
-
-        for camera_name in self.camera_name_list:
-            if camera_name not in sequence.camera:
-                logger.warning(f"{camera_name=}の情報は存在しません。")
-                continue
-
-            camera_obj = sequence.camera[camera_name]
-
-            calibration_dir = output_dir / f"calib-{camera_name}"
-            calibration_dir.mkdir(exist_ok=True, parents=True)
-            image_dir = output_dir / f"image-{camera_name}"
-            image_dir.mkdir(exist_ok=True, parents=True)
-
-            for index in range_obj:
-                pillow_image_obj = camera_obj.data[index]
-                dict_camera_pose = camera_obj.poses[index]
-                dict_lidar_pose = sequence.lidar.poses[index]
-                calibration_filename = f"{get_filename_stem(index)}.txt"
-                self.write_calibration_file(
-                    camera_pose=Pose.from_pandaset_pose(dict_camera_pose),
-                    lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose),
-                    camera_intrinsics=camera_obj.intrinsics,
-                    output_file=calibration_dir / calibration_filename,
-                )
-
-                image_filename = f"{get_filename_stem(index)}.{FILE_EXTENSION}"
-                pillow_image_obj.save(str(image_dir / image_filename))
-
-            # 先頭のカメラposeを取得する
-            camera_view_setting = self.get_camera_view_setting(
-                lidar_pose=Pose.from_pandaset_pose(sequence.lidar.poses[0]), camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]), camera_intrinsics=camera_obj.intrinsics
+            self.write_cuboid_annotation_json(
+                cuboid_data, lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose), output_file=output_dir / filename
             )
-            kitti_images.append(
-                KittiImageSeries(
-                    image_dir=image_dir.name,
-                    calib_dir=calibration_dir.name,
-                    file_extension=FILE_EXTENSION,
-                    camera_view_setting=camera_view_setting,
-                )
-            )
-
-        # 拡張KITTI形式用のメタファイルを出力
-        id_list = [get_filename_stem(index) for index in range_obj]
-
-        self.write_scene_meta_file(
-            id_list=id_list,
-            velodyne_dirname=velodyne_dir.name,
-            kitti_images=kitti_images,
-            output_file=output_dir / "scene.meta",
-        )
 
 
 def parse_args():
@@ -255,7 +138,7 @@ def main() -> None:
     input_dir: Path = args.input_dir
     logger.info(f"{input_dir} をKITTIに変換して、{output_dir}にAnnofabのアノテーションを出力します。")
 
-    main_obj = Pandaset2Kitti(camera_name_list=args.camera_name, sampling_step=args.sampling_step)
+    main_obj = Cuboid2Annofab(sampling_step=args.sampling_step)
 
     dataset = DataSet(str(input_dir))
 
@@ -266,11 +149,11 @@ def main() -> None:
 
     for sequence_id in sequence_id_list:
         sequence = dataset[sequence_id]
-        logger.info(f"{sequence_id=}をKITTIに変換します。")
+        logger.info(f"{sequence_id=}のcuboidをAnnofabのアノテーションに変換します。")
         try:
-            main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
+            main_obj.write_cuboid_annotations(sequence, output_dir=output_dir / sequence_id, task_id=sequence_id)
         except Exception:
-            logger.warning(f"{sequence_id=}のKITTIの変換に失敗しました。", exc_info=True)
+            logger.warning(f"{sequence_id=}のcuboidをAnnofabのアノテーションへの変換に失敗しました。", exc_info=True)
         finally:
             dataset.unload(sequence_id)
 

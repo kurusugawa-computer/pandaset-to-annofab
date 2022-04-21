@@ -167,7 +167,9 @@ class Pandaset2Kitti:
             filename = f"{get_filename_stem(index)}.bin"
             lidar_data = sequence.lidar.data[index]
             dict_lidar_pose = sequence.lidar.poses[index]
-            self.write_velodyne_bin_file(lidar_data, lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose), output_file=velodyne_dir / filename)
+            self.write_velodyne_bin_file(
+                lidar_data, lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose), output_file=velodyne_dir / filename
+            )
 
         # カメラ画像とキャリブレーションファイルの出力
         sequence.load_camera()
@@ -204,7 +206,9 @@ class Pandaset2Kitti:
 
             # 先頭のカメラposeを取得する
             camera_view_setting = self.get_camera_view_setting(
-                lidar_pose=Pose.from_pandaset_pose(sequence.lidar.poses[0]), camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]), camera_intrinsics=camera_obj.intrinsics
+                lidar_pose=Pose.from_pandaset_pose(sequence.lidar.poses[0]),
+                camera_pose=Pose.from_pandaset_pose(camera_obj.poses[0]),
+                camera_intrinsics=camera_obj.intrinsics,
             )
             kitti_images.append(
                 KittiImageSeries(
