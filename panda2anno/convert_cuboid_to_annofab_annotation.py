@@ -20,6 +20,7 @@ from pandaset import DataSet
 from pandaset.sequence import Sequence
 from pyquaternion import Quaternion
 
+from panda2anno.common.annofab import get_input_data_id_from_pandaset
 from panda2anno.common.pose import Pose
 from panda2anno.common.utils import set_default_logger
 
@@ -104,11 +105,8 @@ class Cuboid2Annofab:
         self,
         sequence: Sequence,
         output_dir: Path,
-        task_id: str,
+        sequence_id: str,
     ):
-        def get_input_data(index: int) -> str:
-            return f"{task_id}-{str(index)}"
-
         output_dir.mkdir(exist_ok=True, parents=True)
         sequence.load_lidar()
 
@@ -117,7 +115,7 @@ class Cuboid2Annofab:
         sequence.load_cuboids()
 
         for index in range_obj:
-            filename = f"{get_input_data(index)}.json"
+            filename = f"{get_input_data_id_from_pandaset(sequence_id, index)}.json"
 
             cuboid_data = sequence.cuboids.data[index]
 
@@ -164,7 +162,7 @@ def main() -> None:
         sequence = dataset[sequence_id]
         logger.info(f"{sequence_id=}のcuboidをAnnofabのアノテーションに変換します。")
         try:
-            main_obj.write_cuboid_annotations(sequence, output_dir=output_dir / sequence_id, task_id=sequence_id)
+            main_obj.write_cuboid_annotations(sequence, output_dir=output_dir / sequence_id, sequence_id=sequence_id)
         except Exception:
             logger.warning(f"{sequence_id=}のcuboidをAnnofabのアノテーションへの変換に失敗しました。", exc_info=True)
         finally:

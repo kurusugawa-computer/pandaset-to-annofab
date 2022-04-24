@@ -11,6 +11,7 @@ from pandaset.sensors import Intrinsics
 from pandaset.sequence import Sequence
 from pyquaternion import Quaternion
 
+from panda2anno.common.annofab import get_input_data_id_from_pandaset
 from panda2anno.common.camera import get_camera_matrix_from_intrinsics
 from panda2anno.common.kitti import XYZ, CameraViewSettings, KittiImageSeries, KittiVelodyneSeries
 from panda2anno.common.kitti import Scene as KittiScene
@@ -154,11 +155,8 @@ class Pandaset2Kitti:
         self,
         sequence: Sequence,
         output_dir: Path,
-        filename_prefix: str = "",
+        sequence_id: str,
     ):
-        def get_filename_stem(index: int) -> str:
-            return f"{filename_prefix}{str(index)}"
-
         sequence.load_lidar()
 
         range_obj = range(0, len(sequence.lidar.data), self.sampling_step)
@@ -168,7 +166,7 @@ class Pandaset2Kitti:
         velodyne_dir.mkdir(exist_ok=True, parents=True)
 
         for index in range_obj:
-            filename = f"{get_filename_stem(index)}.bin"
+            filename = f"{get_input_data_id_from_pandaset(sequence_id, index)}.bin"
             lidar_data = sequence.lidar.data[index]
             dict_lidar_pose = sequence.lidar.poses[index]
             self.write_velodyne_bin_file(
@@ -197,7 +195,7 @@ class Pandaset2Kitti:
                 pillow_image_obj = camera_obj.data[index]
                 dict_camera_pose = camera_obj.poses[index]
                 dict_lidar_pose = sequence.lidar.poses[index]
-                calibration_filename = f"{get_filename_stem(index)}.txt"
+                calibration_filename = f"{get_input_data_id_from_pandaset(sequence_id, index)}.txt"
                 self.write_calibration_file(
                     camera_pose=Pose.from_pandaset_pose(dict_camera_pose),
                     lidar_pose=Pose.from_pandaset_pose(dict_lidar_pose),
@@ -205,7 +203,7 @@ class Pandaset2Kitti:
                     output_file=calibration_dir / calibration_filename,
                 )
 
-                image_filename = f"{get_filename_stem(index)}.{FILE_EXTENSION}"
+                image_filename = f"{get_input_data_id_from_pandaset(sequence_id, index)}.{FILE_EXTENSION}"
                 pillow_image_obj.save(str(image_dir / image_filename))
 
             # 先頭のカメラposeを取得する
@@ -224,7 +222,7 @@ class Pandaset2Kitti:
             )
 
         # 拡張KITTI形式用のメタファイルを出力
-        id_list = [get_filename_stem(index) for index in range_obj]
+        id_list = [get_input_data_id_from_pandaset(sequence_id, index) for index in range_obj]
 
         self.write_scene_meta_file(
             id_list=id_list,

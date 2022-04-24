@@ -6,7 +6,7 @@ import pandas
 from pandaset import DataSet
 from pandaset.sequence import Sequence
 
-from panda2anno.common.annofab import get_annofab_label_id_from_pandaset
+from panda2anno.common.annofab import get_label_id_from_pandaset
 from panda2anno.common.utils import set_default_logger
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ def main() -> None:
             dataset.unload(sequence_id)
 
     label_list = sorted(labels)
-    label_ids = [get_annofab_label_id_from_pandaset(label) for label in label_list]
+    label_ids = [get_label_id_from_pandaset(label) for label in label_list]
 
     df = pandas.DataFrame({"label_id": label_ids, "label_name": label_list})
     output: Path = args.output

@@ -1,4 +1,4 @@
-from pandaset2kitti.common.pose import Pose
+from panda2anno.common.pose import Pose
 
 from pytest import approx
 

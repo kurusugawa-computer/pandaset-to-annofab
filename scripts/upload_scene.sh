@@ -1,5 +1,6 @@
 #!/bin/bash -eux
 
+# anno3dコマンドで、入力データ/補助情報をAnnofabに登録します。
 PROJECT_ID=$1
 KITTI_DIR=$2
 
