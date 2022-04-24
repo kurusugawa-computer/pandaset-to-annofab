@@ -36,7 +36,8 @@ class Pandaset2Kitti:
         else:
             self.camera_name_list = camera_name_list
 
-    def write_velodyne_bin_file(self, lidar_data: pandas.DataFrame, lidar_pose: Pose, output_file: Path) -> None:
+    @classmethod
+    def write_velodyne_bin_file(cls, lidar_data: pandas.DataFrame, lidar_pose: Pose, output_file: Path) -> None:
         """
         LiDARの点群データを、KITTIのvelodyne bin fileに出力する。
 
@@ -62,8 +63,9 @@ class Pandaset2Kitti:
         output_file.parent.mkdir(exist_ok=True, parents=True)
         flatten_data.tofile(str(output_file))
 
+    @classmethod
     def write_calibration_file(
-        self,
+        cls,
         camera_pose: Pose,
         lidar_pose: Pose,
         camera_intrinsics: Intrinsics,
@@ -93,8 +95,9 @@ class Pandaset2Kitti:
             f.write(f"R0_rect: {' '.join([str(elem) for elem in R0_rect.flatten()])}\n")
             f.write(f"Tr_velo_to_cam: {' '.join([str(elem) for elem in Tr_velo_to_cam.flatten()])}\n")
 
+    @classmethod
     def write_scene_meta_file(
-        self,
+        cls,
         id_list: list[str],
         velodyne_dirname: str,
         kitti_images: list[KittiImageSeries],
@@ -109,8 +112,9 @@ class Pandaset2Kitti:
         scene = KittiScene(id_list=id_list, velodyne=velodyne, images=kitti_images, labels=[])
         scene.encode(str(output_file))
 
+    @classmethod
     def get_camera_view_setting(
-        self,
+        cls,
         lidar_pose: Pose,
         camera_pose: Pose,
         camera_intrinsics: Intrinsics,
@@ -232,7 +236,7 @@ class Pandaset2Kitti:
 
 def parse_args():
     parser = ArgumentParser(
-        description="PandaSetを拡張KITTI形式に変換します。",
+        description="PandaSetを拡張KITTI形式に変換します。anno3dコマンドでAnnofabに登録することを想定しています。",
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("-i", "--input_dir", type=Path, required=True, help="pandasetのディレクトリ")

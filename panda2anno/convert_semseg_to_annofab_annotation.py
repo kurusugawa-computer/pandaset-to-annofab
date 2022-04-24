@@ -19,8 +19,9 @@ class Semseg2Annofab:
     def __init__(self, sampling_step: int = 1) -> None:
         self.sampling_step = sampling_step
 
+    @classmethod
     def write_semseg_annotation_json(
-        self, semseg_data: pandas.DataFrame, semseg_classes: dict[int, str], task_dir: Path, input_data_id: str
+        cls, semseg_data: pandas.DataFrame, semseg_classes: dict[str, str], task_dir: Path, input_data_id: str
     ):
         input_data_dir = task_dir / input_data_id
         input_data_dir.mkdir(exist_ok=True, parents=True)

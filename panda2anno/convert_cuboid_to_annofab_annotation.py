@@ -30,7 +30,8 @@ class Cuboid2Annofab:
     def __init__(self, sampling_step: int = 1) -> None:
         self.sampling_step = sampling_step
 
-    def get_direction(self, euler_angle: EulerAnglesZXY) -> CuboidDirection:
+    @classmethod
+    def get_direction(cls, euler_angle: EulerAnglesZXY) -> CuboidDirection:
         q = Quaternion(euler_angle.to_quaternion())
         rotation_matrix = q.rotation_matrix
         before_front = numpy.array([1, 0, 0]).T
@@ -88,7 +89,7 @@ class Cuboid2Annofab:
             "annotation_id": cuboid["uuid"],
             "label": cuboid["label"],
             "attributes": attributes,
-            "data": cuboid_data.dump()
+            "data": cuboid_data.dump(),
         }
         return result
 
