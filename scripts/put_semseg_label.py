@@ -31,7 +31,7 @@ def main() -> None:
             "--project_id",
             args.project_id,
             "--label_id",
-            label_id,
+            str(label_id),
             "--ja_name",
             label_name,
             "--en_name",
@@ -41,8 +41,9 @@ def main() -> None:
             "--default_ignore",
             "false",
             "--segment_type",
-            "semantic"
+            "SEMANTIC",
         ]
+        print(f"run: {command}")
         subprocess.run(command, check=True)
 
 

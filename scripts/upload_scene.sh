@@ -1,5 +1,7 @@
 #!/bin/bash -eux
 
+PROJECT_ID=$1
+KITTI_DIR=$2
 
 # プロジェクトトップに移動する
 SCRIPT_DIR=$(cd "$(dirname $0)"; pwd)
@@ -12,7 +14,7 @@ while read -r f; do
   echo "file: $f"
   anno3d project upload_scene --project_id ${PROJECT_ID} --force --upload_kind data --sensor_height 0 --scene_path $f 
 
-done < <(find out/kitti -mindepth 1 -maxdepth 1)
+done < <(find ${KITTI_DIR} -mindepth 1 -maxdepth 1)
 
 
 popd

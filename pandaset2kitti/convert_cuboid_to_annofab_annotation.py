@@ -88,7 +88,7 @@ class Cuboid2Annofab:
             "annotation_id": cuboid["uuid"],
             "label": cuboid["label"],
             "attributes": attributes,
-            "data": cuboid_data.dump()
+            "data": cuboid_data.dump(),
         }
         return result
 

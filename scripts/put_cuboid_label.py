@@ -39,6 +39,7 @@ def main() -> None:
             "--color",
             "(255,0,0)",
         ]
+        print(f"run: {command}")
         subprocess.run(command, check=True)
 
 
