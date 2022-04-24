@@ -13,7 +13,7 @@ def set_default_logger():
 
     logging_formatter = "%(levelname)-8s : %(asctime)s : %(name)s : %(message)s"
     logging.basicConfig(format=logging_formatter)
-    logging.getLogger("pandaset2kitti").setLevel(level=logging.DEBUG)
+    logging.getLogger("panda2anno").setLevel(level=logging.DEBUG)
     logging.getLogger("__main__").setLevel(level=logging.DEBUG)
 
 

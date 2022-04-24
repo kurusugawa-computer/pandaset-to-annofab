@@ -11,11 +11,11 @@ from pandaset.sensors import Intrinsics
 from pandaset.sequence import Sequence
 from pyquaternion import Quaternion
 
-from pandaset2kitti.common.camera import get_camera_matrix_from_intrinsics
-from pandaset2kitti.common.kitti import XYZ, CameraViewSettings, KittiImageSeries, KittiVelodyneSeries
-from pandaset2kitti.common.kitti import Scene as KittiScene
-from pandaset2kitti.common.pose import Pose
-from pandaset2kitti.common.utils import set_default_logger
+from panda2anno.common.camera import get_camera_matrix_from_intrinsics
+from panda2anno.common.kitti import XYZ, CameraViewSettings, KittiImageSeries, KittiVelodyneSeries
+from panda2anno.common.kitti import Scene as KittiScene
+from panda2anno.common.pose import Pose
+from panda2anno.common.utils import set_default_logger
 
 logger = logging.getLogger(__name__)
 

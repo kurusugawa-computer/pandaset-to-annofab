@@ -20,8 +20,8 @@ from pandaset import DataSet
 from pandaset.sequence import Sequence
 from pyquaternion import Quaternion
 
-from pandaset2kitti.common.pose import Pose
-from pandaset2kitti.common.utils import set_default_logger
+from panda2anno.common.pose import Pose
+from panda2anno.common.utils import set_default_logger
 
 logger = logging.getLogger(__name__)
 

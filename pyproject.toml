@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "pandaset-to-kitti"
 version = "0.1.0"
-description = "PandaSetをKITTIに変換します。"
+description = "PandaSetをAnnofabに登録するためのスクリプトです。"
 authors = ["yuji38kwmt"]
 packages = [
-    { include = "pandaset2kitti" }
+    { include = "panda2anno" }
 ]
 
 [tool.poetry.dependencies]

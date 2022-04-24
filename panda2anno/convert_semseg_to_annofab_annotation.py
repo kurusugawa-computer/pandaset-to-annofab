@@ -9,8 +9,8 @@ from annofab_3dpc.annotation import SegmentAnnotationDetailData, SegmentData
 from pandaset import DataSet
 from pandaset.sequence import Sequence
 
-from pandaset2kitti.common.annofab import get_input_data_id_from_pandaset
-from pandaset2kitti.common.utils import set_default_logger
+from panda2anno.common.annofab import get_input_data_id_from_pandaset
+from panda2anno.common.utils import set_default_logger
 
 logger = logging.getLogger(__name__)
 
