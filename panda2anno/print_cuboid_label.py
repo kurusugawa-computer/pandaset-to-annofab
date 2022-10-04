@@ -56,7 +56,7 @@ def main() -> None:
             tmp_labels = get_unique_labels(sequence)
             labels = labels | tmp_labels
         except Exception:
-            logger.warning(f"{sequence_id=}のcuboidをAnnofabのアノテーションへの変換に失敗しました。", exc_info=True)
+            logger.warning(f"{sequence_id=}のcuboidのロードに失敗しました。", exc_info=True)
         finally:
             dataset.unload(sequence_id)
 
