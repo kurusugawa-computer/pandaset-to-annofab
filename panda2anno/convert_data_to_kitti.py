@@ -270,7 +270,7 @@ def main() -> None:
         sequence = dataset[sequence_id]
         logger.info(f"{sequence_id=}をKITTIに変換します。")
         try:
-            main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, filename_prefix=f"{sequence_id}-")
+            main_obj.write_kitti_scene(sequence, output_dir=output_dir / sequence_id, sequence_id=sequence_id)
         except Exception:
             logger.warning(f"{sequence_id=}のKITTIの変換に失敗しました。", exc_info=True)
         finally:
