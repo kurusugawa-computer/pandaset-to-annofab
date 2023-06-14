@@ -1,11 +1,9 @@
 import logging
 import shutil
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from collections import Counter
 from pathlib import Path
 
 from pandaset import DataSet
-from pandaset.sequence import Sequence
 
 from panda2anno.common.utils import set_default_logger
 
@@ -24,15 +22,6 @@ def parse_args():
     parser.add_argument("--sequence_id", type=str, nargs="+", required=False, help="出力対象のsequence id")
 
     return parser.parse_args()
-
-
-def get_label_counter(sequence: Sequence) -> dict[str, int]:
-    sequence.load_cuboids()
-    # 先頭だけ見る
-    df = sequence.semseg.data[0]
-    tmp = Counter(df["class"])
-    classes = sequence.semseg.classes
-    return {classes[str(class_id)]: count for class_id, count in tmp.items()}
 
 
 def main() -> None:
