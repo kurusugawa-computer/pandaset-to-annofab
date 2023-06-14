@@ -85,7 +85,7 @@ class Cuboid2Annofab:
             "rider_status": get_value_or_empty(cuboid["attributes.rider_status"]),
             "pedestrian_behavior": get_value_or_empty(cuboid["attributes.pedestrian_behavior"]),
             "pedestrian_age": get_value_or_empty(cuboid["attributes.pedestrian_age"]),
-            "tracking_id": cuboid["uuid"] # uuidはトラッキングに利用できるので、設定する
+            "tracking_id": cuboid["uuid"],  # uuidはトラッキングに利用できるので、設定する
         }
         result = {
             "annotation_id": cuboid["uuid"],
