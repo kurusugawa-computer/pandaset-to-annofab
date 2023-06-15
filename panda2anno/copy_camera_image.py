@@ -43,11 +43,13 @@ def main() -> None:
 
     success_count = 0
     for sequence_id in sequence_id_list:
-        camera_dir = input_dir / sequence_id / camera
+        camera_dir = input_dir / sequence_id / "camera" / camera
         original_first_frame_filename = "00.jpg"
         original_image_file = camera_dir / original_first_frame_filename
         if not original_image_file.exists():
             logger.warning(f"{original_image_file}は存在しません。ファイルのコピーをスキップします。")
+            continue
+
         output_file = output_dir / f"{sequence_id}__{camera}__00.jpg"
 
         try:
