@@ -1,23 +1,16 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.154.0/containers/docker-existing-dockerfile
 {
 	"name": "Existing Dockerfile",
 	"build": {
 		"dockerfile": "Dockerfile",
 		"context": ".",
-		"args": {},
-		"target": "devcontainer"
+		"args": {}
 	},
 	"containerUser": "vscode",
 	"remoteUser": "vscode",
 	"updateRemoteUserUID": true,
-	"overrideCommand": false,
 	// マウント対象のディレクトリを事前に作成する
 	"initializeCommand": "mkdir -p ${localWorkspaceFolder}/.devcontainer/venv",
 	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-		"source=${localWorkspaceFolder}/.devcontainer/.extensions,target=/home/vscode/.vscode-server/extensions,type=bind",
-		"source=${localEnv:DATA_DIR},target=/data,type=bind",
 		// ホスト側のvenvとコンテン側のvenvを分類して、ホスト側でpoetryコマンドを利用できるようにする
 		"source=${localWorkspaceFolder}/.devcontainer/venv,target=${containerWorkspaceFolder}/.venv,type=bind"
 	],
@@ -28,17 +21,21 @@
 	],
 	"containerEnv": {
 		"CONTAINER_WORKSPACE": "${containerWorkspaceFolder}",
-		"LOCAL_WORKSPACE": "${localWorkspaceFolder}",
+		"LOCAL_WORKSPACE": "${localWorkspaceFolder}"
 	},
-	"postStartCommand": "bash -eu .devcontainer/post-start.sh",
-	"extensions": [
-		"mosapride.zenkaku",
-		"ms-python.python",
-		"ms-python.vscode-pylance",
-		"streetsidesoftware.code-spell-checker",
-		"bungcip.better-toml",
-		"njpwerner.autodocstring",
-		"mechatroner.rainbow-csv",
-		"lextudio.restructuredtext"
-	]
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/pandaset-to-kitti,type=bind,consistency=cached",
+	"workspaceFolder": "/workspaces/pandaset-to-kitti",
+	"postStartCommand": "poetry install",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"mosapride.zenkaku",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"streetsidesoftware.code-spell-checker",
+				"bungcip.better-toml",
+				"njpwerner.autodocstring"
+			]
+		}
+	}
 }
