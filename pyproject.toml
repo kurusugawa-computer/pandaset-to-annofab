@@ -11,10 +11,13 @@ pandas = "*"
 pandaset = { path = "pandaset-devkit/python", develop = false }
 
 requests = "*"
-pyquaternion = "^0.9"
-dataclasses-json = "^0.6"
-more-itertools = "^10"
+pyquaternion = "*"
+dataclasses-json = "*"
+more-itertools = "*"
 annofabapi-3dpc-extensions = "^0.2"
+annofab-3dpc-editor-cli = "*"
+annofabcli = "*"
+
 
 [tool.poetry.group.test.dependencies]
 pytest = "*"
