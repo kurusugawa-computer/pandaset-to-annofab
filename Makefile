@@ -18,5 +18,5 @@ lint:
 	poetry run pylint ${TARGET} --rcfile setup.cfg
 
 test:
-	poetry run pytest -n auto  --cov=panda2anno --cov-report=html tests
+	poetry run pytest tests
 

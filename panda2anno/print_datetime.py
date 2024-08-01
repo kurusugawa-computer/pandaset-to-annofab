@@ -50,7 +50,6 @@ def main() -> None:
     camera_name: str = args.camera
     data: list[dict[str, Any]] = []
     for sequence_id in sequence_id_list:
-        sequence = dataset[sequence_id]
         logger.info(f"{sequence_id=}のsemsegのtimestamp情報を取得します。")
         try:
             str_datetime = get_datetime_from_json(input_dir / sequence_id / "camera" / camera_name / "timestamps.json")

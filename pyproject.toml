@@ -1,38 +1,37 @@
 [tool.poetry]
-name = "pandaset-to-kitti"
-version = "0.1.0"
-description = "PandaSetをAnnofabに登録するためのスクリプトです。"
-authors = ["yuji38kwmt"]
+package-mode = false
 packages = [
     { include = "panda2anno" }
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.12"
 numpy = "*"
 pandas = "*"
 pandaset = { path = "pandaset-devkit/python", develop = false }
 
 requests = "*"
-pyquaternion = "^0.9.9"
-dataclasses-json = "^0.5.7"
-more-itertools = "^8.12.0"
-annofabapi-3dpc-extensions = "^0.1.1"
+pyquaternion = "*"
+dataclasses-json = "*"
+more-itertools = "*"
+annofabapi-3dpc-extensions = "^0.2"
+annofab-3dpc-editor-cli = "*"
+annofabcli = "*"
 
-[tool.poetry.dev-dependencies]
+
+[tool.poetry.group.test.dependencies]
 pytest = "*"
-pytest-xdist = "*"
-pytest-cov = "*"
 
+[tool.poetry.group.formatter.dependencies]
 isort = "*"
-mypy = "*"
-pylint = "*"
 autoflake = "*"
-flake8 = "*"
 black = "*"
 
-ipython = "*"
 
+[tool.poetry.group.linter.dependencies]
+flake8 = "*"
+mypy = "*"
+pylint = "*"
 
 # type sutb
 types-requests = "*"
@@ -53,7 +52,6 @@ profile = "black"
 line_length = 120
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
-
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
 
