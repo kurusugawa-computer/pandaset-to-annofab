@@ -4,7 +4,7 @@
 
 
 # Requriements
-* Python 3.12+
+* Python 3.11+
 * [pandaset-devkit](https://github.com/scaleapi/pandaset-devkit)
 * [annofab-cli](https://github.com/kurusugawa-computer/annofab-cli) コマンド
 * [anno3d](https://github.com/kurusugawa-computer/annofab-3dpc-editor-cli/) コマンド
@@ -66,13 +66,14 @@ out/kitti/001
 ```
 
 変換したAnnofab点群形式のデータを、`anno3d`コマンドでAnnofabに登録します。
+コマンドを実行すると、Annofabに入力データ（補助情報を含む）とタスク`001`が登録されます。
 
 ```
 $ poetry run anno3d project upload_scene --project_id ${PROJECT_ID} --upload_kind task \
  --sensor_height 0 --scene_path out/kitti/001 --task_id_prefix 001
 ```
 
-コマンドを実行Annofabに入力データとタスクが登録されます。
+
 
 
 
