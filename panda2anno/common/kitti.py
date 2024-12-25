@@ -46,6 +46,7 @@ class KittiImageSeries(Series):
     image_dir: str
     calib_dir: Optional[str] = None
     camera_view_setting: Optional[CameraViewSettings] = None
+    display_name: Optional[str] = None
     type: str = "kitti_image"
     type_value: ClassVar[str] = "kitti_image"
     file_extension: str = "png"

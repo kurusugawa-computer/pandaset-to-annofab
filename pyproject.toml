@@ -15,7 +15,7 @@ pyquaternion = "*"
 dataclasses-json = "*"
 more-itertools = "*"
 annofabapi-3dpc-extensions = "^0.2"
-annofab-3dpc-editor-cli = "*"
+annofab-3dpc-editor-cli = "^0.3"
 annofabcli = "*"
 
 
