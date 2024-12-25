@@ -216,6 +216,7 @@ class Pandaset2Kitti:
                 KittiImageSeries(
                     image_dir=image_dir.name,
                     calib_dir=calibration_dir.name,
+                    display_name=camera_name,
                     file_extension=FILE_EXTENSION,
                     camera_view_setting=camera_view_setting,
                 )
